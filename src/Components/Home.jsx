@@ -1,7 +1,6 @@
 // pages/Home.jsx
 import React from "react";
-import products from "../products";
-
+import products from "./products";
 const Home = ({ addToCart }) => {
   return (
     <div>

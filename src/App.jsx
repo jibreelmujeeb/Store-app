@@ -1,23 +1,42 @@
-import React from "react";
-import { Routes, Route, Link } from "react-router-dom";
-import Home from "./Components/Home";
-import Cart from "./Components/Cart";
-import Checkout from "./Components/Checkout";
+import React, { useState } from "react";
+import { Routes, Route } from "react-router-dom";
+import Navbar from "./Components/Navbar";  // 👈 import navbar
+
+import Home from "./pages/Home";
+import POSPage from "./pages/POSPage";
+import InventoryPage from "./pages/Inventory";
+import CustomersPage from "./pages/Customer";
+import OrdersPage from "./pages/Orders";
+import ReportsPage from "./pages/Reports";
+import ExpensesStaffPage from "./pages/ExpenseAndStaff";
+import SettingsPage from "./pages/Settings";
+import LoginPage from "./pages/Login";
+import RegisterPage from "./pages/Register";
+import ForgotPasswordPage from "./pages/ForgetPassword";
 
 export default function App() {
-  return (
-    <div>
-      <nav className="p-4 bg-red-500 flex gap-4">
-        <Link to="/">Home</Link>
-        <Link to="/cart">Cart</Link>
-        <Link to="/checkout">Checkout</Link>
-      </nav>
+  const [carts, setCarts] = useState([]);
 
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-      </Routes>
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-800">
+      {/* Navbar visible only when not on auth pages */}
+      <Navbar />
+
+      <div className="p-6">
+        <Routes>
+          <Route path="/" element={<Home/>} />
+          <Route path="/pos" element={<POSPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/staff" element={<ExpensesStaffPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        </Routes>
+      </div>
     </div>
   );
 }

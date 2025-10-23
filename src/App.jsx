@@ -24,17 +24,17 @@ export default function App() {
 
       <div className="p-6">
         <Routes>
-          <Route path="/" element={<Home/>} />
-          <Route path="/pos" element={<POSPage />} />
-          <Route path="/inventory" element={<InventoryPage />} />
-          <Route path="/customers" element={<CustomersPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/staff" element={<ExpensesStaffPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/" element={<Home/>}/>
+          <Route path="/pos" element={<POSPage/>}/>
+          <Route path="/inventory" element={<InventoryPage/>}/>
+          <Route path="/customers" element={<CustomersPage/>}/>
+          <Route path="/orders" element={<OrdersPage/>}/>
+          <Route path="/reports" element={<ReportsPage/>}/>
+          <Route path="/staff" element={<ExpensesStaffPage/>}/>
+          <Route path="/settings" element={<SettingsPage/>}/>
+          <Route path="/login" element={<LoginPage/>}/>
+          <Route path="/register" element={<RegisterPage/>}/>
+          <Route path="/forgot-password" element={<ForgotPasswordPage/>}/>
         </Routes>
       </div>
     </div>

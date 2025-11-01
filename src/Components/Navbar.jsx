@@ -43,6 +43,9 @@ const Navbar = () => {
         <Link to="/settings" className="flex items-center gap-1 hover:text-blue-600">
           <Settings className="w-4 h-4" /> Settings
         </Link>
+        <Link to="/notifications" className="flex items-center gap-1 hover:text-blue-600">
+          <Package className="w-4 h-4" /> Notifications
+        </Link>
       </div>
 
       {/* Logout / Profile */}

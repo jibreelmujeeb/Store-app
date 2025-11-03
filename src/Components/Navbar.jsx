@@ -46,6 +46,8 @@ const Navbar = () => {
         <Link to="/notifications" className="flex items-center gap-1 hover:text-blue-600">
           <Package className="w-4 h-4" /> Notifications
         </Link>
+        <Link to="/suppliers" className="flex items-center gap-1 hover:text-blue-600">
+          <Package className="w-4 h-4" /> Suppliers</Link>
       </div>
 
       {/* Logout / Profile */}

@@ -48,6 +48,9 @@ const Navbar = () => {
         </Link>
         <Link to="/suppliers" className="flex items-center gap-1 hover:text-blue-600">
           <Package className="w-4 h-4" /> Suppliers</Link>
+        <Link to="/backup" className="flex items-center gap-1 hover:text-blue-600">
+          <BarChart2 className="w-4 h-4 "/>Backup & Export
+        </Link>
       </div>
 
       {/* Logout / Profile */}

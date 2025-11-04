@@ -15,6 +15,7 @@ import RegisterPage from "./pages/Register";
 import ForgotPasswordPage from "./pages/ForgetPassword";
 import NotificationsPage from "./pages/Notification";
 import SuppliersPage from "./pages/SuppliersManagement";
+import BackupExportPage from "./pages/Backup & Data Export Page";
 
 export default function App() {
   const [carts, setCarts] = useState([]);
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage/>}/>
           <Route path="/notifications" element={<NotificationsPage/>}/>
           <Route path="/suppliers" element={<SuppliersPage/>}/>
+          <Route path="/backup" element={<BackupExportPage/>}/>
         </Routes>
       </div>
     </div>

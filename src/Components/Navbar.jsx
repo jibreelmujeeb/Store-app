@@ -51,6 +51,10 @@ const Navbar = () => {
         <Link to="/backup" className="flex items-center gap-1 hover:text-blue-600">
           <BarChart2 className="w-4 h-4 "/>Backup & Export
         </Link>
+        <Link to="/Receipt" className="flex items-center gap-1 hover:text-blue-600">
+          <DollarSign className="w-4 h-4" /> Receipts & Sales History
+        </Link>
+       
       </div>
 
       {/* Logout / Profile */}

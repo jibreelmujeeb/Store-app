@@ -14,7 +14,7 @@ const Navbar = () => {
       {/* Logo / Title */}
       <div className="flex items-center gap-2">
         <DollarSign className="text-blue-600 w-6 h-6" />
-        <span className="font-semibold text-lg text-gray-800">POS System</span>
+        <span className="font-semibold text-lg text-gray-800"></span>
       </div>
 
       {/* Nav Links */}
@@ -54,7 +54,9 @@ const Navbar = () => {
         <Link to="/Receipt" className="flex items-center gap-1 hover:text-blue-600">
           <DollarSign className="w-4 h-4" /> Receipts & Sales History
         </Link>
-       
+        <Link to="/User-management" className="flex items-center gap-1 hover:text-blue-600">
+          <Users className="w-4 h-4" /> User Management
+        </Link>
       </div>
 
       {/* Logout / Profile */}

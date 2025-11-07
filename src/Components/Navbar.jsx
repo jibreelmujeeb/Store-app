@@ -14,7 +14,7 @@ const Navbar = () => {
       {/* Logo / Title */}
       <div className="flex items-center gap-2">
         <DollarSign className="text-blue-600 w-6 h-6" />
-        <span className="font-semibold text-lg text-gray-800"></span>
+        <span className="font-semibold text-lg text-gray-800">pos</span>
       </div>
 
       {/* Nav Links */}

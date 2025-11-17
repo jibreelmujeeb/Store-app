@@ -57,6 +57,9 @@ const Navbar = () => {
         <Link to="/User-management" className="flex items-center gap-1 hover:text-blue-600">
           <Users className="w-4 h-4" /> User Management
         </Link>
+        <Link to="/profile" className="flex items-center gap-1 hover:text-blue-600">
+          <Settings className="w-4 h-4" /> Profile
+        </Link>
       </div>
 
       {/* Logout / Profile */}

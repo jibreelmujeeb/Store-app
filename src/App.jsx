@@ -18,6 +18,7 @@ import SuppliersPage from "./pages/SuppliersManagement";
 import BackupExportPage from "./pages/Backup & Data Export Page";
 import ReceiptSalesHistoryPages from "./pages/Receipts & Sales History Page";
 import UserManagementPage from "./pages/User Management Page";
+import ProfilePage from "./pages/Profile Page Component";
 
 export default function App() {
   const [carts, setCarts] = useState([]);
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/backup" element={<BackupExportPage/>}/>
           <Route path="/Receipt" element={<ReceiptSalesHistoryPages/>} />
           <Route path="/User-management" element={<UserManagementPage/>}/>
+          <Route path="/profile" element={<ProfilePage/>}/>
         </Routes>
       </div>
     </div>

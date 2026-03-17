@@ -1,6 +1,7 @@
 import json
 from db import execute_query, execute_many
 import uuid
+import decimal  # Add for Decimal handling
 
 class OrdersHandler:
     @staticmethod
@@ -41,6 +42,10 @@ class OrdersHandler:
                 WHERE oi.order_id = %s
             """, (order_id,), fetch=True)
 
+            # Convert Decimal for JSON
+            for item in items:
+                item['price'] = float(item['price']) if 'price' in item else item['price']
+
             order['items'] = items
             return {'order': order}, 200
 
@@ -76,8 +81,8 @@ class OrdersHandler:
                     return {'error': f'Product {product_id} not found'}, 404
 
                 price = product[0]['price']
-                total += price * quantity
-                order_items.append((product_id, quantity, price))
+                total += float(price) * quantity  # Ensure float
+                order_items.append((product_id, quantity, float(price)))
 
             # Create order
             order_result = execute_query(
@@ -88,22 +93,30 @@ class OrdersHandler:
             if not order_result:
                 return {'error': 'Failed to create order'}, 500
 
-            # Get order ID
-            order_id = execute_query("SELECT LAST_INSERT_ID() as id", fetch=True)[0]['id']
+            # Get REAL order ID (LAST_INSERT_ID works, but verify)
+            order_result_id = execute_query("SELECT LAST_INSERT_ID() as id", fetch=True)
+            if not order_result_id:
+                return {'error': 'Failed to get order ID'}, 500
+            order_id = order_result_id[0]['id']
+            print(f"DEBUG: Created order_id = {order_id} for invoice {invoice_id}")
 
-            # Insert order items
+            # Insert order items - CRITICAL: Use correct order_id
+            inserted_items = 0
             if order_items:
                 items_query = "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (%s, %s, %s, %s)"
-                items_params = [(order_id, pid, qty, price) for pid, qty, price in order_items]
-                execute_many(items_query, items_params)
+                items_params = [(order_id, pid, qty, prc) for pid, qty, prc in order_items]
+                inserted_items = execute_many(items_query, items_params) or 0
+                print(f"DEBUG: Inserted {inserted_items} order_items for order {order_id}")
 
             return {
                 'message': 'Order created successfully',
-                'order_id': order_id,
-                'invoice_id': invoice_id
+                'order_id': int(order_id),  # Ensure int
+                'invoice_id': invoice_id,
+                'items_count': len(order_items)
             }, 201
 
         except Exception as e:
+            print(f"Order create error: {e}")
             return {'error': str(e)}, 500
 
     @staticmethod

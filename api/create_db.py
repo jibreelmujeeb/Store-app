@@ -5,17 +5,17 @@ def create_database():
     try:
         # Connect to MySQL server (XAMPP default)
         connection = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='00000000'  # No password for XAMPP
+            host='163.61.188.5',
+            user='rsconsul_admin12',
+            password='Aremu1@2'  # No password for XAMPP
         )
 
         if connection.is_connected():
             cursor = connection.cursor()
 
             # Create database if it doesn't exist
-            cursor.execute("CREATE DATABASE IF NOT EXISTS pos_system")
-            print("Database 'pos_system' created successfully")
+            cursor.execute("CREATE DATABASE IF NOT EXISTS rsconsul_pos_system")
+            print("Database 'rsconsul_pos_system' created successfully")
 
             # Use the database
             cursor.execute("USE pos_system")

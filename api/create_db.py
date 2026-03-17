@@ -5,9 +5,9 @@ def create_database():
     try:
         # Connect to MySQL server (XAMPP default)
         connection = mysql.connector.connect(
-            host='163.61.188.5',
-            user='rsconsul_admin12',
-            password='Aremu1@2'  # No password for XAMPP
+            host='localhost',
+            user='root',
+            password='00000000'  # No password for XAMPP
         )
 
         if connection.is_connected():

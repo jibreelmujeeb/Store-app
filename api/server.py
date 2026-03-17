@@ -15,57 +15,61 @@ from routes.settings import SettingsHandler
 from routes.notifications import NotificationsHandler
 
 class POSAPIHandler(BaseHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        self.routes = {
-            # Auth routes (no auth required)
-            'POST': {
-                '/api/auth/register': self.handle_register,
-                '/api/auth/login': self.handle_login,
-            },
-            # Protected routes
-            'GET': {
-                '/api/products': self.handle_get_products,
-                '/api/customers': self.handle_get_customers,
-                '/api/orders': self.handle_get_orders,
-                '/api/staff': self.handle_get_staff,
-                '/api/expenses': self.handle_get_expenses,
-                '/api/suppliers': self.handle_get_suppliers,
-                '/api/notifications': self.handle_get_notifications,
-                '/api/reports/dashboard': self.handle_get_dashboard,
-                '/api/reports/sales-chart': self.handle_get_sales_chart,
-                '/api/reports/top-products': self.handle_get_top_products,
-                '/api/settings': self.handle_get_settings,
-            },
-            'POST': {
-                '/api/products': self.handle_create_product,
-                '/api/customers': self.handle_create_customer,
-                '/api/orders': self.handle_create_order,
-                '/api/staff': self.handle_create_staff,
-                '/api/expenses': self.handle_create_expense,
-                '/api/suppliers': self.handle_create_supplier,
-                '/api/notifications': self.handle_create_notification,
-                '/api/notifications/check-low-stock': self.handle_check_low_stock,
-            },
-            'PUT': {
-                '/api/products': self.handle_update_product,
-                '/api/customers': self.handle_update_customer,
-                '/api/orders/status': self.handle_update_order_status,
-                '/api/staff': self.handle_update_staff,
-                '/api/expenses': self.handle_update_expense,
-                '/api/suppliers': self.handle_update_supplier,
-                '/api/settings': self.handle_update_settings,
-                '/api/notifications/read': self.handle_mark_notification_read,
-            },
-            'DELETE': {
-                '/api/products': self.handle_delete_product,
-                '/api/customers': self.handle_delete_customer,
-                '/api/orders': self.handle_delete_order,
-                '/api/staff': self.handle_delete_staff,
-                '/api/expenses': self.handle_delete_expense,
-                '/api/suppliers': self.handle_delete_supplier,
-                '/api/notifications': self.handle_delete_notification,
-            }
+    # Auth routes (no auth required)
+    auth_routes = {
+        'POST': {
+            '/api/auth/register': 'handle_register',
+            '/api/auth/login': 'handle_login',
         }
+    }
+
+    # Protected routes (require authentication)
+    protected_routes = {
+        'GET': {
+            '/api/products': 'handle_get_products',
+            '/api/customers': 'handle_get_customers',
+            '/api/orders': 'handle_get_orders',
+            '/api/staff': 'handle_get_staff',
+            '/api/expenses': 'handle_get_expenses',
+            '/api/suppliers': 'handle_get_suppliers',
+            '/api/notifications': 'handle_get_notifications',
+            '/api/reports/dashboard': 'handle_get_dashboard',
+            '/api/reports/sales-chart': 'handle_get_sales_chart',
+            '/api/reports/top-products': 'handle_get_top_products',
+            '/api/settings': 'handle_get_settings',
+        },
+        'POST': {
+            '/api/products': 'handle_create_product',
+            '/api/customers': 'handle_create_customer',
+            '/api/orders': 'handle_create_order',
+            '/api/staff': 'handle_create_staff',
+            '/api/expenses': 'handle_create_expense',
+            '/api/suppliers': 'handle_create_supplier',
+            '/api/notifications': 'handle_create_notification',
+            '/api/notifications/check-low-stock': 'handle_check_low_stock',
+        },
+        'PUT': {
+            '/api/products': 'handle_update_product',
+            '/api/customers': 'handle_update_customer',
+            '/api/orders/status': 'handle_update_order_status',
+            '/api/staff': 'handle_update_staff',
+            '/api/expenses': 'handle_update_expense',
+            '/api/suppliers': 'handle_update_supplier',
+            '/api/settings': 'handle_update_settings',
+            '/api/notifications/read': 'handle_mark_notification_read',
+        },
+        'DELETE': {
+            '/api/products': 'handle_delete_product',
+            '/api/customers': 'handle_delete_customer',
+            '/api/orders': 'handle_delete_order',
+            '/api/staff': 'handle_delete_staff',
+            '/api/expenses': 'handle_delete_expense',
+            '/api/suppliers': 'handle_delete_supplier',
+            '/api/notifications': 'handle_delete_notification',
+        }
+    }
+
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def do_GET(self):
@@ -80,6 +84,14 @@ class POSAPIHandler(BaseHTTPRequestHandler):
     def do_DELETE(self):
         self.handle_request('DELETE')
 
+    def do_OPTIONS(self):
+        """Handle CORS preflight requests"""
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.end_headers()
+
     def handle_request(self, method):
         try:
             # Parse URL
@@ -87,26 +99,44 @@ class POSAPIHandler(BaseHTTPRequestHandler):
             path = parsed_url.path
             query_params = parse_qs(parsed_url.query)
 
-            # Get route handler
-            route_handlers = self.routes.get(method, {})
-            handler = None
+            print(f"DEBUG: Method={method}, Path={path}")  # Debug logging
 
-            # Check for exact match first
-            if path in route_handlers:
-                handler = route_handlers[path]
-            else:
-                # Check for pattern matches (e.g., /api/products/123)
-                for route_pattern, route_handler in route_handlers.items():
-                    if path.startswith(route_pattern + '/'):
-                        handler = route_handler
-                        break
+            handler_name = None
+            is_auth_route = False
 
-            if not handler:
+            # Check auth routes first (no auth required)
+            auth_route_handlers = self.auth_routes.get(method, {})
+            print(f"DEBUG: Checking auth routes for method {method}. Path: '{path}'. Available auth paths: {list(auth_route_handlers.keys())}")
+            if path in auth_route_handlers:
+                handler_name = auth_route_handlers[path]
+                is_auth_route = True
+                print(f"DEBUG: Auth route found for {path} -> {handler_name}")  # Debug logging
+
+            # If not an auth route, check protected routes
+            if not handler_name:
+                protected_route_handlers = self.protected_routes.get(method, {})
+
+                # Check for exact match first
+                if path in protected_route_handlers:
+                    handler_name = protected_route_handlers[path]
+                    print(f"DEBUG: Protected route found for {path} -> {handler_name}")  # Debug logging
+                else:
+                    # Check for pattern matches (e.g., /api/products/123)
+                    for route_pattern, route_handler_name in protected_route_handlers.items():
+                        if path.startswith(route_pattern + '/'):
+                            handler_name = route_handler_name
+                            print(f"DEBUG: Pattern match found for {path} with {route_pattern} -> {handler_name}")  # Debug logging
+                            break
+
+            if not handler_name:
+                print(f"DEBUG: No handler found for {method} {path}")  # Debug logging
+                print(f"DEBUG: Available auth routes: {list(auth_route_handlers.keys())}")  # Debug logging
+                print(f"DEBUG: Available protected routes: {list(protected_route_handlers.keys())}")  # Debug logging
                 self.send_error_response(404, 'Endpoint not found')
                 return
 
-            # Check authentication for protected routes
-            if method != 'POST' or not path.startswith('/api/auth'):
+            # Check authentication for protected routes only
+            if not is_auth_route:
                 auth_result = self.check_auth()
                 if not auth_result['authenticated']:
                     self.send_json_response(401, {'error': 'Authentication required'})
@@ -131,7 +161,8 @@ class POSAPIHandler(BaseHTTPRequestHandler):
                 if len(parts) >= 4:
                     resource_id = parts[3]
 
-            # Call handler
+            # Call handler by name
+            handler = getattr(self, handler_name)
             result, status_code = handler(data, resource_id, query_params)
             self.send_json_response(status_code, result)
 

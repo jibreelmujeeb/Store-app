@@ -48,6 +48,7 @@ class AuthHandler:
             email = data.get('email')
             password = data.get('password')
 
+            print(f"DEBUG: Login attempt for email: {email}")
             if not all([email, password]):
                 return {'error': 'Email and password are required'}, 400
 

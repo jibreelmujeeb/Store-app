@@ -7,7 +7,7 @@ def create_database():
         connection = mysql.connector.connect(
             host='localhost',
             user='root',
-            password=''  # No password for XAMPP
+            password='00000000'  # No password for XAMPP
         )
 
         if connection.is_connected():

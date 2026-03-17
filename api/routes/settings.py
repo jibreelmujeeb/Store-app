@@ -15,7 +15,11 @@ class SettingsHandler:
                 """)
                 settings = execute_query("SELECT * FROM settings WHERE id = 1", fetch=True)
 
-            return {'settings': settings[0]}, 200
+            # Convert Decimal fields to float for JSON serialization
+            setting = settings[0]
+            setting = {k: float(v) if isinstance(v, decimal.Decimal) else v for k, v in setting.items()}
+
+            return {'settings': setting}, 200
 
         except Exception as e:
             return {'error': str(e)}, 500

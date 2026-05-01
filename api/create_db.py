@@ -14,8 +14,8 @@ def create_database():
             cursor = connection.cursor()
 
             # Create database if it doesn't exist
-            cursor.execute("CREATE DATABASE IF NOT EXISTS rsconsul_pos_system")
-            print("Database 'rsconsul_pos_system' created successfully")
+            cursor.execute("CREATE DATABASE IF NOT EXISTS pos_system")
+            print("Database 'pos_system' created successfully")
 
             # Use the database
             cursor.execute("USE pos_system")

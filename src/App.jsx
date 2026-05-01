@@ -24,29 +24,30 @@ export default function App() {
   const [carts, setCarts] = useState([]);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800">
-      {/* Navbar visible only when not on auth pages */}
+    <div className="flex min-h-screen bg-gray-50 text-gray-800">
+      {/* Sidebar */}
       <Navbar />
 
-      <div className="p-6">
+      {/* Main Content */}
+      <div className="flex-1 p-6">
         <Routes>
-          <Route path="/" element={<Home/>}/>
-          <Route path="/pos" element={<POSPage/>}/>
-          <Route path="/inventory" element={<InventoryPage/>}/>
-          <Route path="/customers" element={<CustomersPage/>}/>
-          <Route path="/orders" element={<OrdersPage/>}/>
-          <Route path="/reports" element={<ReportsPage/>}/>
-          <Route path="/staff" element={<ExpensesStaffPage/>}/>
-          <Route path="/settings" element={<SettingsPage/>}/>
-          <Route path="/login" element={<LoginPage/>}/>
-          <Route path="/register" element={<RegisterPage/>}/>
-          <Route path="/forgot-password" element={<ForgotPasswordPage/>}/>
-          <Route path="/notifications" element={<NotificationsPage/>}/>
-          <Route path="/suppliers" element={<SuppliersPage/>}/>
-          <Route path="/backup" element={<BackupExportPage/>}/>
-          <Route path="/Receipt" element={<ReceiptSalesHistoryPages/>} />
-          <Route path="/User-management" element={<UserManagementPage/>}/>
-          <Route path="/profile" element={<ProfilePage/>}/>
+          <Route path="/" element={<Home />} />
+          <Route path="/pos" element={<POSPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/staff" element={<ExpensesStaffPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/suppliers" element={<SuppliersPage />} />
+          <Route path="/backup" element={<BackupExportPage />} />
+          <Route path="/Receipt" element={<ReceiptSalesHistoryPages />} />
+          <Route path="/User-management" element={<UserManagementPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </div>
     </div>

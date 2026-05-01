@@ -1,66 +1,65 @@
-import React from "react";
-import { Bell, Package, AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { Bell, Package, AlertTriangle, CheckCircle2, Info, Trash2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { notificationsApi } from "../api/notifications";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Page, PageHeader, PageTitle } from "../components/ui/page";
+import { EmptyState, ErrorBanner, LoadingState } from "../components/ui/state";
+import { useToast } from "../components/ui/toast";
 
-const NotificationsPage = () => {
-  const notifications = [
-    {
-      id: 1,
-      type: "low-stock",
-      message: "Low stock alert: Cappuccino Beans (4 left)",
-      icon: <Package className="text-red-500 w-5 h-5" />,
-      time: "5 minutes ago",
+function NotificationIcon({ type }) {
+  if (type === "low-stock") return <Package className="h-5 w-5 text-red-500" />;
+  if (type === "warning") return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+  if (type === "sale") return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
+  return <Info className="h-5 w-5 text-slate-500" />;
+}
+
+export default function NotificationsPage() {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const notificationsQuery = useQuery({ queryKey: ["notifications"], queryFn: notificationsApi.list });
+  const checkStockMutation = useMutation({
+    mutationFn: notificationsApi.checkLowStock,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("Low-stock check completed");
     },
-    {
-      id: 2,
-      type: "sale",
-      message: "₦25,000 sale completed by Cashier #3",
-      icon: <CheckCircle2 className="text-green-500 w-5 h-5" />,
-      time: "15 minutes ago",
+    onError: (error) => toast.error(error.message),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: notificationsApi.remove,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("Notification deleted");
     },
-    {
-      id: 3,
-      type: "info",
-      message: "New customer joined loyalty program.",
-      icon: <Info className="text-blue-500 w-5 h-5" />,
-      time: "1 hour ago",
-    },
-    {
-      id: 4,
-      type: "warning",
-      message: "Network connection unstable.",
-      icon: <AlertTriangle className="text-yellow-500 w-5 h-5" />,
-      time: "2 hours ago",
-    },
-  ];
+    onError: (error) => toast.error(error.message),
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 p-6">
-      <h1 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-        <Bell className="w-6 h-6 text-blue-600" /> Notifications
-      </h1>
-
-      <div className="bg-white border border-gray-200 rounded-2xl divide-y divide-gray-100">
-        {notifications.length > 0 ? (
-          notifications.map((note) => (
-            <div
-              key={note.id}
-              className="flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors"
-            >
-              <div>{note.icon}</div>
-              <div className="flex-1">
-                <p className="text-sm">{note.message}</p>
-                <p className="text-xs text-gray-500 mt-1">{note.time}</p>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="p-6 text-center text-gray-500 text-sm">
-            No new notifications
-          </div>
+    <Page>
+      <PageHeader>
+        <PageTitle description="Review system alerts and low-stock notices." icon={Bell} title="Notifications" />
+        <Button onClick={() => checkStockMutation.mutate()} variant="outline">Check Low Stock</Button>
+      </PageHeader>
+      <div className="px-4 pb-8 sm:px-6">
+        {notificationsQuery.isError && (
+          <ErrorBanner error={notificationsQuery.error} onRetry={notificationsQuery.refetch} />
         )}
+        <Card className="divide-y divide-slate-100">
+          {notificationsQuery.isLoading ? <LoadingState /> : (notificationsQuery.data || []).length === 0 ? <EmptyState title="No notifications" /> : (notificationsQuery.data || []).map((note) => (
+            <div key={note.id} className="flex items-start gap-3 p-4">
+              <NotificationIcon type={note.type} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-slate-800">{note.message}</p>
+                <p className="mt-1 text-xs text-slate-500">{new Date(note.created_at).toLocaleString()}</p>
+              </div>
+              <Button className="text-red-600" onClick={() => deleteMutation.mutate(note.id)} size="icon" variant="ghost">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </Card>
       </div>
-    </div>
+    </Page>
   );
-};
-
-export default NotificationsPage;
+}

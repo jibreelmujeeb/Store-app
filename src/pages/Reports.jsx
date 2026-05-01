@@ -10,100 +10,113 @@ import {
   CartesianGrid,
 } from "recharts";
 import { BarChart3, TrendingUp, DollarSign, Package, Users } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { reportsApi } from "../api/reports";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Page, PageHeader, PageTitle } from "../components/ui/page";
+import { ErrorBanner, LoadingState } from "../components/ui/state";
 
 export default function ReportsPage() {
-  const revenueData = [
-    { month: "Jan", revenue: 82000 },
-    { month: "Feb", revenue: 95000 },
-    { month: "Mar", revenue: 87000 },
-    { month: "Apr", revenue: 102000 },
-    { month: "May", revenue: 118000 },
-    { month: "Jun", revenue: 97000 },
-  ];
+  const dashboardQuery = useQuery({ queryKey: ["reports", "dashboard"], queryFn: reportsApi.dashboard });
+  const salesQuery = useQuery({ queryKey: ["reports", "sales-chart"], queryFn: reportsApi.salesChart });
+  const topProductsQuery = useQuery({ queryKey: ["reports", "top-products"], queryFn: reportsApi.topProducts });
+  const dashboard = dashboardQuery.data || {};
+  const revenueData = salesQuery.data || [];
+  const topProducts = topProductsQuery.data || [];
 
-  const topProducts = [
-    { name: "Latte", sales: 450 },
-    { name: "Espresso", sales: 390 },
-    { name: "Cappuccino", sales: 310 },
-    { name: "Croissant", sales: 270 },
+  const stats = [
+    { icon: DollarSign, label: "Today's Sales", value: `₦${Number(dashboard.today_sales || 0).toLocaleString()}` },
+    { icon: TrendingUp, label: "Monthly Revenue", value: `₦${Number(dashboard.monthly_revenue || 0).toLocaleString()}` },
+    { icon: Package, label: "Products In Stock", value: Number(dashboard.total_stock || 0).toLocaleString() },
+    { icon: Users, label: "Customers", value: Number(dashboard.total_customers || 0).toLocaleString() },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-        <h1 className="text-lg font-semibold flex items-center gap-2">
-          <BarChart3 className="w-6 h-6 text-blue-600" />
-          Reports / Analytics
-        </h1>
-        <button className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-          Export Report
-        </button>
-      </header>
+    <Page>
+      <PageHeader>
+        <PageTitle
+          description="Review revenue, product movement, and customer growth."
+          icon={BarChart3}
+          title="Reports"
+        />
+        <Button>Export Report</Button>
+      </PageHeader>
 
-      {/* Quick Stats */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-6">
-        {[
-          { icon: <DollarSign className="w-6 h-6 text-green-600" />, label: "Total Revenue", value: "₦520,000" },
-          { icon: <TrendingUp className="w-6 h-6 text-blue-600" />, label: "Monthly Growth", value: "+8.4%" },
-          { icon: <Package className="w-6 h-6 text-yellow-600" />, label: "Top Selling Product", value: "Latte" },
-          { icon: <Users className="w-6 h-6 text-purple-600" />, label: "New Customers", value: "127" },
-        ].map((item, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-400 transition"
-          >
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100">
-              {item.icon}
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">{item.label}</p>
-              <p className="text-lg font-semibold">{item.value}</p>
-            </div>
-          </div>
-        ))}
+      <section className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 sm:px-6 xl:grid-cols-4">
+        {dashboardQuery.isLoading && <div className="col-span-full"><LoadingState label="Loading report summary..." /></div>}
+        {dashboardQuery.isError && <div className="col-span-full"><ErrorBanner error={dashboardQuery.error} onRetry={dashboardQuery.refetch} /></div>}
+        {!dashboardQuery.isLoading && stats.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Card key={item.label}>
+              <CardContent className="flex items-center gap-4 p-5">
+                <div className="flex h-11 w-11 items-center justify-center rounded-md bg-slate-100 text-slate-700">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">{item.label}</p>
+                  <p className="text-xl font-semibold text-slate-950">{item.value}</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </section>
 
-      {/* Charts Section */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-6 pb-10">
-        {/* Revenue Trend */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h2 className="text-base font-medium mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-blue-600" />
-            Monthly Revenue
-          </h2>
-          <div className="h-64">
+      <section className="grid grid-cols-1 gap-6 px-4 pb-8 sm:px-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-slate-600" />
+              Monthly Revenue
+            </CardTitle>
+            <CardDescription>Six-month revenue trend.</CardDescription>
+          </CardHeader>
+          <CardContent>
+          {salesQuery.isError && <ErrorBanner error={salesQuery.error} onRetry={salesQuery.refetch} />}
+          {salesQuery.isLoading ? <LoadingState /> : (
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} />
+                <Line type="monotone" dataKey="revenue" stroke="#0f172a" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+          )}
+          </CardContent>
+        </Card>
 
-        {/* Top Products */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h2 className="text-base font-medium mb-4 flex items-center gap-2">
-            <Package className="w-5 h-5 text-blue-600" />
-            Top Products
-          </h2>
-          <div className="h-64">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-slate-600" />
+              Top Products
+            </CardTitle>
+            <CardDescription>Units sold by product.</CardDescription>
+          </CardHeader>
+          <CardContent>
+          {topProductsQuery.isError && <ErrorBanner error={topProductsQuery.error} onRetry={topProductsQuery.refetch} />}
+          {topProductsQuery.isLoading ? <LoadingState /> : (
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topProducts}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="sales" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="sales" fill="#0f172a" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+          )}
+          </CardContent>
+        </Card>
       </section>
-    </div>
+    </Page>
   );
 }

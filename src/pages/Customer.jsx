@@ -1,162 +1,223 @@
-import { UserPlus, Users, Phone, Mail, Edit3, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { UserPlus, Users, Phone, Edit3, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { customersApi } from "../api/customers";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Page, PageHeader, PageTitle } from "../components/ui/page";
+import { EmptyState, ErrorBanner, LoadingState } from "../components/ui/state";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { useToast } from "../components/ui/toast";
+
+const customerSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Enter a valid email").optional().or(z.literal("")),
+  phone: z.string().min(1, "Phone number is required"),
+});
+
+const defaultValues = { name: "", email: "", phone: "" };
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState([
-    { id: 1, name: "Amina Bello", email: "amina@example.com", phone: "08123456789", totalOrders: 12 },
-    { id: 2, name: "John Doe", email: "john@example.com", phone: "09012345678", totalOrders: 5 },
-    { id: 3, name: "Grace Okon", email: "grace@example.com", phone: "08099911122", totalOrders: 8 },
-  ]);
-
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [newCustomer, setNewCustomer] = useState({ name: "", email: "", phone: "" });
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [deletingCustomer, setDeletingCustomer] = useState(null);
+  const queryClient = useQueryClient();
+  const toast = useToast();
 
-  const filtered = customers.filter((c) =>
+  const customersQuery = useQuery({ queryKey: ["customers"], queryFn: customersApi.list });
+  const form = useForm({ resolver: zodResolver(customerSchema), defaultValues });
+
+  useEffect(() => {
+    if (showForm) {
+      form.reset(editingCustomer ? {
+        name: editingCustomer.name || "",
+        email: editingCustomer.email || "",
+        phone: editingCustomer.phone || "",
+      } : defaultValues);
+    }
+  }, [editingCustomer, form, showForm]);
+
+  const filtered = useMemo(() => (customersQuery.data || []).filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
-  );
+  ), [customersQuery.data, search]);
 
-  const addCustomer = () => {
-    if (!newCustomer.name || !newCustomer.phone) return;
-    setCustomers([
-      ...customers,
-      { ...newCustomer, id: Date.now(), totalOrders: 0 },
-    ]);
-    setNewCustomer({ name: "", email: "", phone: "" });
-    setShowForm(false);
+  const saveMutation = useMutation({
+    mutationFn: (values) => editingCustomer
+      ? customersApi.update(editingCustomer.id, values)
+      : customersApi.create(values),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success(editingCustomer ? "Customer updated" : "Customer created");
+      setShowForm(false);
+      setEditingCustomer(null);
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: customersApi.remove,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Customer deleted");
+      setDeletingCustomer(null);
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const openCreate = () => {
+    setEditingCustomer(null);
+    setShowForm(true);
   };
 
-  const deleteCustomer = (id) =>
-    setCustomers(customers.filter((c) => c.id !== id));
-
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
-        <h1 className="text-lg font-semibold flex items-center gap-2">
-          <Users className="w-6 h-6 text-blue-600" />
-          Customers
-        </h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-        >
+    <Page>
+      <PageHeader>
+        <PageTitle
+          description="Keep customer contacts and order counts organized."
+          icon={Users}
+          title="Customers"
+        />
+        <Button onClick={openCreate}>
           <UserPlus className="w-4 h-4" />
           Add Customer
-        </button>
-      </header>
+        </Button>
+      </PageHeader>
 
-      {/* Search Bar */}
-      <div className="flex items-center gap-2 px-6 py-4 border-b border-gray-200 bg-gray-50">
-        <input
+      <div className="px-4 sm:px-6">
+        <Input
           type="text"
           placeholder="Search customers..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none text-sm bg-white"
         />
       </div>
 
-      {/* Table */}
-      <div className="p-6 overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-gray-100 text-gray-700 uppercase text-xs">
-              <th className="px-4 py-3 text-left">Name</th>
-              <th className="px-4 py-3 text-left">Email</th>
-              <th className="px-4 py-3 text-left">Phone</th>
-              <th className="px-4 py-3 text-left">Orders</th>
-              <th className="px-4 py-3 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((c) => (
-              <tr key={c.id} className="border-b border-gray-200 hover:bg-gray-100 transition">
-                <td className="px-4 py-3 font-medium">{c.name}</td>
-                <td className="px-4 py-3 text-gray-600">{c.email || "—"}</td>
-                <td className="px-4 py-3 flex items-center gap-1 text-gray-700">
-                  <Phone className="w-4 h-4 text-blue-600" /> {c.phone}
-                </td>
-                <td className="px-4 py-3 text-gray-700">{c.totalOrders}</td>
-                <td className="px-4 py-3 text-right flex justify-end gap-3">
-                  <button className="text-blue-600 hover:underline flex items-center gap-1">
-                    <Edit3 className="w-4 h-4" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteCustomer(c.id)}
-                    className="text-red-500 hover:underline flex items-center gap-1"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {filtered.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-6">No customers found</p>
+      <div className="px-4 pb-8 sm:px-6">
+        {customersQuery.isError && (
+          <ErrorBanner error={customersQuery.error} onRetry={customersQuery.refetch} />
         )}
+        <Card>
+          {customersQuery.isLoading ? (
+            <LoadingState label="Loading customers..." />
+          ) : filtered.length === 0 ? (
+            <EmptyState description="Create a customer or adjust your search." title="No customers found" />
+          ) : (
+          <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Orders</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((c) => (
+              <TableRow key={c.id}>
+                <TableCell className="font-medium text-slate-950">{c.name}</TableCell>
+                <TableCell className="text-slate-600">{c.email || "-"}</TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-slate-400" />
+                    {c.phone}
+                  </span>
+                </TableCell>
+                <TableCell>{c.total_orders || c.totalOrders || 0}</TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-2">
+                    <Button onClick={() => { setEditingCustomer(c); setShowForm(true); }} size="sm" variant="ghost">
+                      <Edit3 className="w-4 h-4" />
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={() => setDeletingCustomer(c)}
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+          )}
+        </Card>
       </div>
 
-      {/* Add Customer Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center">
-          <div className="bg-white border border-gray-200 rounded-xl w-96 p-6 space-y-4">
-            <h2 className="text-base font-semibold flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-blue-600" />
-              Add New Customer
-            </h2>
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent onClose={() => setShowForm(false)}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />
+              Add Customer
+            </DialogTitle>
+            <DialogDescription>Add a customer profile for faster checkout and order history.</DialogDescription>
+          </DialogHeader>
 
-            <div className="space-y-3">
-              <input
+          <form className="space-y-3" onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))}>
+              <Input
                 type="text"
                 placeholder="Full Name"
-                value={newCustomer.name}
-                onChange={(e) =>
-                  setNewCustomer({ ...newCustomer, name: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none"
+                {...form.register("name")}
               />
-              <input
+              {form.formState.errors.name && <p className="text-xs text-red-600">{form.formState.errors.name.message}</p>}
+              <Input
                 type="email"
                 placeholder="Email (optional)"
-                value={newCustomer.email}
-                onChange={(e) =>
-                  setNewCustomer({ ...newCustomer, email: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none"
+                {...form.register("email")}
               />
-              <input
+              {form.formState.errors.email && <p className="text-xs text-red-600">{form.formState.errors.email.message}</p>}
+              <Input
                 type="tel"
                 placeholder="Phone Number"
-                value={newCustomer.phone}
-                onChange={(e) =>
-                  setNewCustomer({ ...newCustomer, phone: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none"
+                {...form.register("phone")}
               />
-            </div>
+              {form.formState.errors.phone && <p className="text-xs text-red-600">{form.formState.errors.phone.message}</p>}
 
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                onClick={() => setShowForm(false)}
-                className="text-gray-600 text-sm hover:underline"
-              >
+          <DialogFooter>
+              <Button onClick={() => setShowForm(false)} variant="outline">
                 Cancel
-              </button>
-              <button
-                onClick={addCustomer}
-                className="flex items-center gap-2 bg-blue-600 text-white text-sm font-medium rounded-lg px-4 py-2 hover:bg-blue-700 transition"
-              >
-                <UserPlus className="w-4 h-4" /> Add
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+              </Button>
+              <Button disabled={saveMutation.isPending} type="submit">
+                <UserPlus className="w-4 h-4" /> Save
+              </Button>
+          </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(deletingCustomer)} onOpenChange={() => setDeletingCustomer(null)}>
+        <DialogContent onClose={() => setDeletingCustomer(null)}>
+          <DialogHeader>
+            <DialogTitle>Delete Customer</DialogTitle>
+            <DialogDescription>Delete {deletingCustomer?.name}? This cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setDeletingCustomer(null)} variant="outline">Cancel</Button>
+            <Button disabled={deleteMutation.isPending} onClick={() => deleteMutation.mutate(deletingCustomer.id)} variant="destructive">
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Page>
   );
 }

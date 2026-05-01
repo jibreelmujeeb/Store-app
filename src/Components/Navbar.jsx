@@ -1,86 +1,87 @@
-import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, ShoppingCart, BarChart2, Settings, Users, Package, DollarSign, LogOut } from "lucide-react";
+import {
+  Archive,
+  BarChart3,
+  Bell,
+  DatabaseBackup,
+  Home,
+  LogOut,
+  Package,
+  Receipt,
+  Settings,
+  ShoppingCart,
+  Store,
+  Truck,
+  UserCircle,
+  Users,
+} from "lucide-react";
+import { cn } from "../lib/utils";
+import { Button } from "../components/ui/button";
+import { useAuth } from "../auth/AuthContext";
 
 const Navbar = () => {
   const location = useLocation();
+  const { logout } = useAuth();
 
-  // Fix typo here 👇 (you used /forget-password instead of /forgot-password)
   const hideNavbar = ["/login", "/register", "/forgot-password"].includes(location.pathname);
   if (hideNavbar) return null;
 
+  const navItems = [
+    { to: "/", label: "Dashboard", Icon: Home },
+    { to: "/pos", label: "POS", Icon: ShoppingCart },
+    { to: "/inventory", label: "Inventory", Icon: Package },
+    { to: "/customers", label: "Customers", Icon: Users },
+    { to: "/orders", label: "Orders", Icon: Receipt },
+    { to: "/reports", label: "Reports", Icon: BarChart3 },
+    { to: "/staff", label: "Staff & Expenses", Icon: Archive },
+    { to: "/settings", label: "Settings", Icon: Settings },
+    { to: "/notifications", label: "Notifications", Icon: Bell },
+    { to: "/suppliers", label: "Suppliers", Icon: Truck },
+    { to: "/backup", label: "Backup", Icon: DatabaseBackup },
+    { to: "/Receipt", label: "Receipts", Icon: Receipt },
+    { to: "/User-management", label: "Users", Icon: Users },
+    { to: "/profile", label: "Profile", Icon: UserCircle },
+  ];
+
   return (
-    <div className="w-64 bg-white border-r border-gray-200 flex flex-col p-4">
-      {/* Logo */}
-      <div className="flex items-center gap-2 mb-8">
-        <DollarSign className="text-blue-600 w-6 h-6" />
-        <span className="font-semibold text-lg">My POS</span>
+    <aside className="border-b border-slate-200 bg-white lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:w-72 lg:flex-col lg:border-b-0 lg:border-r">
+      <div className="flex items-center gap-3 px-4 py-4 lg:px-5">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-950 text-white">
+          <Store className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-slate-950">My POS</p>
+          <p className="text-xs text-slate-500">Retail operations</p>
+        </div>
       </div>
 
-      {/* Nav Links */}
-      <div className="flex flex-col gap-3 text-gray-700 text-sm flex-1">
-        <Link to="/" className="flex items-center gap-2 hover:text-blue-600">
-          <Home className="w-4 h-4" /> Home
-        </Link>
+      <nav className="flex gap-1 overflow-x-auto px-3 pb-3 text-sm lg:flex-1 lg:flex-col lg:overflow-y-auto lg:pb-4">
+        {navItems.map((item) => {
+          const { to, label } = item;
+          const active = location.pathname === to;
+          return (
+            <Link
+              key={to}
+              to={to}
+              className={cn(
+                "inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950",
+                active && "bg-slate-950 text-white hover:bg-slate-900 hover:text-white"
+              )}
+            >
+              <item.Icon className="h-4 w-4" />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
-        <Link to="/pos" className="flex items-center gap-2 hover:text-blue-600">
-          <ShoppingCart className="w-4 h-4" /> POS
-        </Link>
-
-        <Link to="/inventory" className="flex items-center gap-2 hover:text-blue-600">
-          <Package className="w-4 h-4" /> Inventory
-        </Link>
-
-        <Link to="/customers" className="flex items-center gap-2 hover:text-blue-600">
-          <Users className="w-4 h-4" /> Customers
-        </Link>
-
-        <Link to="/orders" className="flex items-center gap-2 hover:text-blue-600">
-          <BarChart2 className="w-4 h-4" /> Orders
-        </Link>
-
-        <Link to="/reports" className="flex items-center gap-2 hover:text-blue-600">
-          <BarChart2 className="w-4 h-4" /> Reports
-        </Link>
-
-        <Link to="/staff" className="flex items-center gap-2 hover:text-blue-600">
-          <Users className="w-4 h-4" /> Staff
-        </Link>
-
-        <Link to="/settings" className="flex items-center gap-2 hover:text-blue-600">
-          <Settings className="w-4 h-4" /> Settings
-        </Link>
-
-        <Link to="/notifications" className="flex items-center gap-2 hover:text-blue-600">
-          <Package className="w-4 h-4" /> Notifications
-        </Link>
-
-        <Link to="/suppliers" className="flex items-center gap-2 hover:text-blue-600">
-          <Package className="w-4 h-4" /> Suppliers
-        </Link>
-
-        <Link to="/backup" className="flex items-center gap-2 hover:text-blue-600">
-          <BarChart2 className="w-4 h-4" /> Backup & Export
-        </Link>
-
-        <Link to="/Receipt" className="flex items-center gap-2 hover:text-blue-600">
-          <DollarSign className="w-4 h-4" /> Receipts
-        </Link>
-
-        <Link to="/User-management" className="flex items-center gap-2 hover:text-blue-600">
-          <Users className="w-4 h-4" /> Users
-        </Link>
-
-        <Link to="/profile" className="flex items-center gap-2 hover:text-blue-600">
-          <Settings className="w-4 h-4" /> Profile
-        </Link>
+      <div className="hidden border-t border-slate-200 p-4 lg:block">
+        <Button className="w-full justify-start text-red-600 hover:text-red-700" onClick={logout} variant="ghost">
+          <LogOut className="h-4 w-4" />
+          Logout
+        </Button>
       </div>
-
-      {/* Logout at bottom */}
-      <button className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm mt-auto">
-        <LogOut className="w-4 h-4" /> Logout
-      </button>
-    </div>
+    </aside>
   );
 };
 

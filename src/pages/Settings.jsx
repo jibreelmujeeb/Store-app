@@ -1,106 +1,190 @@
 import { Save, Settings, Building, CreditCard, Percent } from "lucide-react";
+import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { settingsApi } from "../api/settings";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Input, Label } from "../components/ui/input";
+import { Page, PageHeader, PageTitle } from "../components/ui/page";
+import { ErrorBanner, LoadingState } from "../components/ui/state";
+import { useToast } from "../components/ui/toast";
+
+const schema = z.object({
+  business_name: z.string().optional(),
+  business_email: z.string().email("Enter a valid email").optional().or(z.literal("")),
+  business_phone: z.string().optional(),
+  business_address: z.string().optional(),
+  tax_rate: z.coerce.number().min(0, "Tax cannot be negative"),
+  currency: z.string().min(1, "Currency is required"),
+});
 
 export default function SettingsPage() {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const settingsQuery = useQuery({ queryKey: ["settings"], queryFn: settingsApi.get });
+  const form = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      business_name: "",
+      business_email: "",
+      business_phone: "",
+      business_address: "",
+      tax_rate: 7.5,
+      currency: "NGN",
+    },
+  });
+
+  useEffect(() => {
+    if (settingsQuery.data) {
+      form.reset({
+        business_name: settingsQuery.data.business_name || "",
+        business_email: settingsQuery.data.business_email || "",
+        business_phone: settingsQuery.data.business_phone || "",
+        business_address: settingsQuery.data.business_address || "",
+        tax_rate: Number(settingsQuery.data.tax_rate || 7.5),
+        currency: settingsQuery.data.currency || "NGN",
+      });
+    }
+  }, [form, settingsQuery.data]);
+
+  const saveMutation = useMutation({
+    mutationFn: settingsApi.update,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast.success("Settings saved");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-        <h1 className="text-lg font-semibold flex items-center gap-2">
-          <Settings className="w-6 h-6 text-blue-600" />
-          System Settings
-        </h1>
-        <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+    <Page>
+      <form onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))}>
+      <PageHeader>
+        <PageTitle
+          description="Configure business details, tax, currency, and payment methods."
+          icon={Settings}
+          title="System Settings"
+        />
+        <Button disabled={saveMutation.isPending} type="submit">
           <Save className="w-4 h-4" />
           Save Changes
-        </button>
-      </header>
+        </Button>
+      </PageHeader>
 
-      {/* Settings Form */}
-      <section className="p-6 space-y-8">
-        {/* Business Info */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h2 className="text-base font-medium mb-4 flex items-center gap-2">
-            <Building className="w-5 h-5 text-blue-600" />
-            Business Information
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <section className="space-y-6 px-4 pb-8 sm:px-6">
+        {settingsQuery.isLoading && <LoadingState label="Loading settings..." />}
+        {settingsQuery.isError && <ErrorBanner error={settingsQuery.error} onRetry={settingsQuery.refetch} />}
+        {!settingsQuery.isLoading && (
+        <>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5 text-slate-600" />
+              Business Information
+            </CardTitle>
+            <CardDescription>These details appear on invoices and receipts.</CardDescription>
+          </CardHeader>
+          <CardContent>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="text-sm text-gray-600">Business Name</label>
-              <input
+              <Label>Business Name</Label>
+              <Input
                 type="text"
                 placeholder="Enter your business name"
-                className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                className="mt-1"
+                {...form.register("business_name")}
               />
             </div>
             <div>
-              <label className="text-sm text-gray-600">Business Email</label>
-              <input
+              <Label>Business Email</Label>
+              <Input
                 type="email"
                 placeholder="example@business.com"
-                className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                className="mt-1"
+                {...form.register("business_email")}
               />
+              {form.formState.errors.business_email && <p className="mt-1 text-xs text-red-600">{form.formState.errors.business_email.message}</p>}
             </div>
             <div>
-              <label className="text-sm text-gray-600">Phone Number</label>
-              <input
+              <Label>Phone Number</Label>
+              <Input
                 type="text"
                 placeholder="+234 812 345 6789"
-                className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                className="mt-1"
+                {...form.register("business_phone")}
               />
             </div>
             <div>
-              <label className="text-sm text-gray-600">Business Address</label>
-              <input
+              <Label>Business Address</Label>
+              <Input
                 type="text"
                 placeholder="123 Example Street, Lagos"
-                className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                className="mt-1"
+                {...form.register("business_address")}
               />
             </div>
           </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Tax and Currency */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h2 className="text-base font-medium mb-4 flex items-center gap-2">
-            <Percent className="w-5 h-5 text-green-600" />
-            Tax & Currency Settings
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Percent className="h-5 w-5 text-slate-600" />
+              Tax & Currency
+            </CardTitle>
+            <CardDescription>Set default checkout calculations.</CardDescription>
+          </CardHeader>
+          <CardContent>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="text-sm text-gray-600">Tax Rate (%)</label>
-              <input
+              <Label>Tax Rate (%)</Label>
+              <Input
                 type="number"
                 placeholder="7.5"
-                className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                className="mt-1"
+                step="0.01"
+                {...form.register("tax_rate")}
               />
             </div>
             <div>
-              <label className="text-sm text-gray-600">Currency</label>
-              <select className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+              <Label>Currency</Label>
+              <select className="mt-1 flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100" {...form.register("currency")}>
                 <option value="NGN">₦ — Nigerian Naira</option>
                 <option value="USD">$ — US Dollar</option>
                 <option value="GBP">£ — British Pound</option>
               </select>
             </div>
           </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Payment Options */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h2 className="text-base font-medium mb-4 flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-purple-600" />
-            Payment Options
-          </h2>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-slate-600" />
+              Payment Options
+            </CardTitle>
+            <CardDescription>Enable methods accepted at checkout.</CardDescription>
+          </CardHeader>
+          <CardContent>
           <div className="space-y-3">
             {["Cash", "POS Terminal", "Bank Transfer", "Online Payment"].map((method, i) => (
-              <label key={i} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" className="accent-blue-600" />
+              <label key={i} className="flex items-center gap-3 text-sm text-slate-700">
+                <input type="checkbox" className="h-4 w-4 accent-slate-950" />
                 {method}
               </label>
             ))}
           </div>
-        </div>
+          </CardContent>
+        </Card>
+        </>
+        )}
       </section>
-    </div>
+      </form>
+    </Page>
   );
 }

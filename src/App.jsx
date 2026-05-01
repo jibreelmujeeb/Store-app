@@ -1,6 +1,5 @@
-import React, { useState } from "react";
 import { Routes, Route } from "react-router-dom";
-import Navbar from "./Components/Navbar";  // 👈 import navbar
+import Navbar from "./Components/Navbar";
 
 import Home from "./pages/Home";
 import POSPage from "./pages/POSPage";
@@ -21,16 +20,15 @@ import UserManagementPage from "./pages/User Management Page";
 import ProfilePage from "./pages/Profile Page Component";
 
 export default function App() {
-  const [carts, setCarts] = useState([]);
-
   return (
-    <div className="flex min-h-screen bg-gray-50 text-gray-800">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-slate-50 text-slate-900 lg:flex">
       <Navbar />
 
-      {/* Main Content */}
-      <div className="flex-1 p-6">
+      <main className="min-w-0 flex-1 lg:pl-72">
         <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/" element={<Home />} />
           <Route path="/pos" element={<POSPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
@@ -39,9 +37,6 @@ export default function App() {
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/staff" element={<ExpensesStaffPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/suppliers" element={<SuppliersPage />} />
           <Route path="/backup" element={<BackupExportPage />} />
@@ -49,7 +44,7 @@ export default function App() {
           <Route path="/User-management" element={<UserManagementPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Routes>
-      </div>
+      </main>
     </div>
   );
 }

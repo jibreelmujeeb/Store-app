@@ -1,117 +1,141 @@
-import React, { useState } from "react";
-import { Truck, Phone, Mail, Plus, Edit3, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Mail, Phone, Plus, Trash2, Truck, Edit3 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { suppliersApi } from "../api/suppliers";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Page, PageHeader, PageTitle } from "../components/ui/page";
+import { EmptyState, ErrorBanner, LoadingState } from "../components/ui/state";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { useToast } from "../components/ui/toast";
 
-const SuppliersPage = () => {
-  const [suppliers, setSuppliers] = useState([
-    { id: 1, name: "Coffee Distributors Ltd", phone: "+234 802 345 6789", email: "contact@coffeehub.com" },
-    { id: 2, name: "Sweet Cream Supply Co.", phone: "+234 810 222 3344", email: "sales@sweetcream.com" },
-  ]);
+const schema = z.object({
+  name: z.string().min(1, "Supplier name is required"),
+  phone: z.string().optional(),
+  email: z.string().email("Enter a valid email").optional().or(z.literal("")),
+});
 
-  const [newSupplier, setNewSupplier] = useState({ name: "", phone: "", email: "" });
+const defaults = { name: "", phone: "", email: "" };
 
-  const handleAddSupplier = (e) => {
-    e.preventDefault();
-    if (!newSupplier.name.trim()) return;
-    setSuppliers([
-      ...suppliers,
-      { id: suppliers.length + 1, ...newSupplier },
-    ]);
-    setNewSupplier({ name: "", phone: "", email: "" });
-  };
+export default function SuppliersPage() {
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const suppliersQuery = useQuery({ queryKey: ["suppliers"], queryFn: suppliersApi.list });
+  const form = useForm({ resolver: zodResolver(schema), defaultValues: defaults });
 
-  const handleDelete = (id) => {
-    setSuppliers(suppliers.filter((s) => s.id !== id));
-  };
+  useEffect(() => {
+    if (open) form.reset(editing ? {
+      name: editing.name || "",
+      phone: editing.phone || "",
+      email: editing.email || "",
+    } : defaults);
+  }, [editing, form, open]);
+
+  const saveMutation = useMutation({
+    mutationFn: (values) => editing ? suppliersApi.update(editing.id, values) : suppliersApi.create(values),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      toast.success(editing ? "Supplier updated" : "Supplier created");
+      setOpen(false);
+      setEditing(null);
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: suppliersApi.remove,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      toast.success("Supplier deleted");
+      setDeleting(null);
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 p-6">
-      <h1 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-        <Truck className="w-6 h-6 text-green-600" /> Suppliers Management
-      </h1>
+    <Page>
+      <PageHeader>
+        <PageTitle description="Manage supplier contacts for purchasing and restocking." icon={Truck} title="Suppliers" />
+        <Button onClick={() => { setEditing(null); setOpen(true); }}>
+          <Plus className="h-4 w-4" /> Add Supplier
+        </Button>
+      </PageHeader>
 
-      {/* Add New Supplier */}
-      <form
-        onSubmit={handleAddSupplier}
-        className="bg-white border border-gray-200 rounded-2xl p-4 mb-6 flex flex-col md:flex-row gap-4"
-      >
-        <input
-          type="text"
-          placeholder="Supplier Name"
-          className="border border-gray-300 rounded-xl px-3 py-2 flex-1 outline-none"
-          value={newSupplier.name}
-          onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
-        />
-        <input
-          type="text"
-          placeholder="Phone Number"
-          className="border border-gray-300 rounded-xl px-3 py-2 flex-1 outline-none"
-          value={newSupplier.phone}
-          onChange={(e) => setNewSupplier({ ...newSupplier, phone: e.target.value })}
-        />
-        <input
-          type="email"
-          placeholder="Email Address"
-          className="border border-gray-300 rounded-xl px-3 py-2 flex-1 outline-none"
-          value={newSupplier.email}
-          onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
-        />
-        <button
-          type="submit"
-          className="bg-green-600 text-white px-5 py-2 rounded-xl flex items-center gap-2 hover:bg-green-700 transition"
-        >
-          <Plus className="w-4 h-4" /> Add
-        </button>
-      </form>
-
-      {/* Supplier List */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-        <table className="w-full border-collapse text-sm">
-          <thead className="bg-gray-100 text-gray-600">
-            <tr>
-              <th className="text-left p-3">Supplier Name</th>
-              <th className="text-left p-3">Phone</th>
-              <th className="text-left p-3">Email</th>
-              <th className="text-right p-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {suppliers.map((supplier) => (
-              <tr
-                key={supplier.id}
-                className="border-t border-gray-100 hover:bg-gray-50"
-              >
-                <td className="p-3">{supplier.name}</td>
-                <td className="p-3 flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-400" /> {supplier.phone}
-                </td>
-                <td className="p-3 flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-gray-400" /> {supplier.email}
-                </td>
-                <td className="p-3 text-right">
-                  <button className="text-blue-600 hover:text-blue-700 mr-3">
-                    <Edit3 className="w-4 h-4 inline" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(supplier.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4 inline" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {suppliers.length === 0 && (
-              <tr>
-                <td colSpan="4" className="p-6 text-center text-gray-500">
-                  No suppliers found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="px-4 pb-8 sm:px-6">
+        {suppliersQuery.isError && (
+          <ErrorBanner error={suppliersQuery.error} onRetry={suppliersQuery.refetch} />
+        )}
+        <Card>
+          {suppliersQuery.isLoading ? <LoadingState label="Loading suppliers..." /> : (suppliersQuery.data || []).length === 0 ? <EmptyState title="No suppliers found" /> : (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Supplier</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(suppliersQuery.data || []).map((supplier) => (
+                  <TableRow key={supplier.id}>
+                    <TableCell className="font-medium text-slate-950">{supplier.name}</TableCell>
+                    <TableCell><span className="inline-flex items-center gap-2"><Phone className="h-4 w-4 text-slate-400" />{supplier.phone || "-"}</span></TableCell>
+                    <TableCell><span className="inline-flex items-center gap-2"><Mail className="h-4 w-4 text-slate-400" />{supplier.email || "-"}</span></TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Button onClick={() => { setEditing(supplier); setOpen(true); }} size="sm" variant="ghost"><Edit3 className="h-4 w-4" />Edit</Button>
+                        <Button className="text-red-600 hover:text-red-700" onClick={() => setDeleting(supplier)} size="sm" variant="ghost"><Trash2 className="h-4 w-4" />Delete</Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </Card>
       </div>
-    </div>
-  );
-};
 
-export default SuppliersPage;
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent onClose={() => setOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Supplier" : "Add Supplier"}</DialogTitle>
+            <DialogDescription>Supplier name is required. Phone and email are optional.</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-3" onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))}>
+            <Input placeholder="Supplier name" {...form.register("name")} />
+            {form.formState.errors.name && <p className="text-xs text-red-600">{form.formState.errors.name.message}</p>}
+            <Input placeholder="Phone number" {...form.register("phone")} />
+            <Input placeholder="Email address" type="email" {...form.register("email")} />
+            {form.formState.errors.email && <p className="text-xs text-red-600">{form.formState.errors.email.message}</p>}
+            <DialogFooter>
+              <Button onClick={() => setOpen(false)} variant="outline">Cancel</Button>
+              <Button disabled={saveMutation.isPending} type="submit">Save</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(deleting)} onOpenChange={() => setDeleting(null)}>
+        <DialogContent onClose={() => setDeleting(null)}>
+          <DialogHeader>
+            <DialogTitle>Delete Supplier</DialogTitle>
+            <DialogDescription>Delete {deleting?.name}? This cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setDeleting(null)} variant="outline">Cancel</Button>
+            <Button disabled={deleteMutation.isPending} onClick={() => deleteMutation.mutate(deleting.id)} variant="destructive">Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Page>
+  );
+}

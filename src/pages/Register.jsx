@@ -1,66 +1,110 @@
-import React from "react";
 import { UserPlus, Mail, Lock, Store } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuth } from "../auth/AuthContext";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Input, Label } from "../components/ui/input";
+import { useToast } from "../components/ui/toast";
+
+const schema = z.object({
+  business_name: z.string().min(2, "Business name is required"),
+  email: z.string().email("Enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
 const RegisterPage = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-800">
-      <div className="w-full max-w-sm border border-gray-200 bg-white p-8 rounded-2xl">
-        <h1 className="text-2xl font-semibold mb-6 text-center flex items-center justify-center gap-2">
-          <UserPlus className="w-5 h-5 text-green-600" /> Create Account
-        </h1>
+  const auth = useAuth();
+  const toast = useToast();
+  const navigate = useNavigate();
+  const { formState: { errors }, handleSubmit, register } = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: { business_name: "", email: "", password: "" },
+  });
 
-        <form className="space-y-4">
+  const onSubmit = async (values) => {
+    try {
+      await auth.register(values);
+      toast.success("Account created. You can now log in.");
+      navigate("/login");
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 text-slate-900">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-lg bg-slate-950 text-white">
+            <UserPlus className="h-5 w-5" />
+          </div>
+          <CardTitle className="text-xl">Create Account</CardTitle>
+          <CardDescription>Set up your business workspace.</CardDescription>
+        </CardHeader>
+        <CardContent>
+        <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
           <div>
-            <label className="block text-sm mb-1 text-gray-600">Business Name</label>
-            <div className="flex items-center border border-gray-300 rounded-xl px-3">
-              <Store className="text-gray-400 w-4 h-4" />
-              <input
+            <Label>Business Name</Label>
+            <div className="relative mt-1">
+              <Store className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <Input
                 type="text"
                 placeholder="e.g. Cafe Klang"
-                className="w-full px-2 py-2 outline-none bg-transparent"
+                className="pl-9"
+                {...register("business_name")}
               />
             </div>
+            {errors.business_name && <p className="mt-1 text-xs text-red-600">{errors.business_name.message}</p>}
           </div>
 
           <div>
-            <label className="block text-sm mb-1 text-gray-600">Email</label>
-            <div className="flex items-center border border-gray-300 rounded-xl px-3">
-              <Mail className="text-gray-400 w-4 h-4" />
-              <input
+            <Label>Email</Label>
+            <div className="relative mt-1">
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <Input
                 type="email"
                 placeholder="Enter your email"
-                className="w-full px-2 py-2 outline-none bg-transparent"
+                className="pl-9"
+                {...register("email")}
               />
             </div>
+            {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
           </div>
 
           <div>
-            <label className="block text-sm mb-1 text-gray-600">Password</label>
-            <div className="flex items-center border border-gray-300 rounded-xl px-3">
-              <Lock className="text-gray-400 w-4 h-4" />
-              <input
+            <Label>Password</Label>
+            <div className="relative mt-1">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <Input
                 type="password"
                 placeholder="Create password"
-                className="w-full px-2 py-2 outline-none bg-transparent"
+                className="pl-9"
+                {...register("password")}
               />
             </div>
+            {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
           </div>
 
-          <button
+          <Button
             type="submit"
-            className="w-full bg-green-600 text-white py-2 rounded-xl font-medium hover:bg-green-700"
+            className="w-full"
+            disabled={auth.isRegistering}
           >
-            Register
-          </button>
+            {auth.isRegistering ? "Creating..." : "Register"}
+          </Button>
 
-          <p className="text-sm text-center mt-4">
+          <p className="pt-2 text-center text-sm text-slate-500">
             Already have an account?{" "}
-            <a href="/login" className="text-green-600">
+            <Link to="/login" className="font-medium text-slate-900">
               Login
-            </a>
+            </Link>
           </p>
         </form>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

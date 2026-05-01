@@ -70,12 +70,14 @@ const BackupExportPage = () => {
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => handleExport("csv")}
+              disabled={isExporting}
               className="border border-gray-300 rounded-xl px-4 py-2 flex items-center gap-2 hover:bg-gray-100 transition"
             >
               <Download className="w-4 h-4 text-green-600" /> CSV
             </button>
             <button
               onClick={() => handleExport("excel")}
+              disabled={isExporting}
               className="border border-gray-300 rounded-xl px-4 py-2 flex items-center gap-2 hover:bg-gray-100 transition"
             >
               <Download className="w-4 h-4 text-green-600" /> Excel

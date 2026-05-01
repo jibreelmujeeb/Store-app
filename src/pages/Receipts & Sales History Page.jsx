@@ -1,181 +1,96 @@
-import React, { useState } from "react";
-import { Receipt, Search, Calendar, Printer, Eye, Filter } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Calendar, Eye, Printer, Receipt, Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ordersApi } from "../api/orders";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Page, PageHeader, PageTitle } from "../components/ui/page";
+import { EmptyState, ErrorBanner, ErrorState, LoadingState } from "../components/ui/state";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 
-const ReceiptsHistoryPage = () => {
+export default function ReceiptsHistoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDate, setFilterDate] = useState("");
-  const [selectedReceipt, setSelectedReceipt] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const ordersQuery = useQuery({ queryKey: ["orders"], queryFn: ordersApi.list });
+  const receiptQuery = useQuery({
+    queryKey: ["orders", selectedId],
+    queryFn: () => ordersApi.get(selectedId),
+    enabled: Boolean(selectedId),
+  });
 
-  const receipts = [
-    {
-      id: "INV-001",
-      date: "2025-10-21",
-      customer: "John Doe",
-      total: 5500,
-      payment: "Cash",
-      items: [
-        { name: "Latte", qty: 2, price: 1500 },
-        { name: "Donut", qty: 1, price: 2500 },
-      ],
-    },
-    {
-      id: "INV-002",
-      date: "2025-10-22",
-      customer: "Jane Smith",
-      total: 8200,
-      payment: "Card",
-      items: [
-        { name: "Iced Coffee", qty: 2, price: 3000 },
-        { name: "Croissant", qty: 1, price: 2200 },
-      ],
-    },
-  ];
-
-  const filteredReceipts = receipts.filter(
-    (r) =>
-      r.id.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (!filterDate || r.date === filterDate)
-  );
+  const receipts = useMemo(() => (ordersQuery.data || []).filter((order) => {
+    const matchesSearch = `${order.invoice_id} ${order.customer_name || ""}`.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDate = !filterDate || String(order.created_at || "").slice(0, 10) === filterDate;
+    return matchesSearch && matchesDate;
+  }), [filterDate, ordersQuery.data, searchTerm]);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 p-6">
-      <h1 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-        <Receipt className="w-6 h-6 text-indigo-600" /> Receipts & Sales History
-      </h1>
+    <Page>
+      <PageHeader>
+        <PageTitle description="Review completed sales and receipt details." icon={Receipt} title="Receipts & Sales History" />
+      </PageHeader>
 
-      {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col md:flex-row gap-4 mb-6">
-        <div className="flex items-center gap-2 flex-1 border border-gray-300 rounded-xl px-3 py-2">
-          <Search className="w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by receipt ID or customer..."
-            className="w-full outline-none text-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="grid gap-3 px-4 sm:px-6 md:grid-cols-[1fr_14rem]">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+          <Input className="pl-9" onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search receipt ID or customer..." value={searchTerm} />
         </div>
-        <div className="flex items-center gap-2 border border-gray-300 rounded-xl px-3 py-2">
-          <Calendar className="w-4 h-4 text-gray-400" />
-          <input
-            type="date"
-            className="outline-none text-sm"
-            value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
-          />
+        <div className="relative">
+          <Calendar className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+          <Input className="pl-9" onChange={(event) => setFilterDate(event.target.value)} type="date" value={filterDate} />
         </div>
-        <button className="bg-indigo-600 text-white rounded-xl px-5 py-2 flex items-center gap-2 hover:bg-indigo-700 transition">
-          <Filter className="w-4 h-4" /> Filter
-        </button>
       </div>
 
-      {/* Receipts Table */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-        <table className="w-full border-collapse text-sm">
-          <thead className="bg-gray-100 text-gray-600">
-            <tr>
-              <th className="text-left p-3">Receipt ID</th>
-              <th className="text-left p-3">Customer</th>
-              <th className="text-left p-3">Date</th>
-              <th className="text-left p-3">Payment</th>
-              <th className="text-right p-3">Total</th>
-              <th className="text-right p-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredReceipts.map((r) => (
-              <tr
-                key={r.id}
-                className="border-t border-gray-100 hover:bg-gray-50 transition"
-              >
-                <td className="p-3">{r.id}</td>
-                <td className="p-3">{r.customer}</td>
-                <td className="p-3">{r.date}</td>
-                <td className="p-3">{r.payment}</td>
-                <td className="p-3 text-right font-medium">
-                  ₦{r.total.toLocaleString()}
-                </td>
-                <td className="p-3 text-right flex justify-end gap-3">
-                  <button
-                    onClick={() => setSelectedReceipt(r)}
-                    className="text-blue-600 hover:text-blue-700"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  <button className="text-green-600 hover:text-green-700">
-                    <Printer className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {filteredReceipts.length === 0 && (
-              <tr>
-                <td
-                  colSpan="6"
-                  className="text-center text-gray-500 p-6 text-sm"
-                >
-                  No receipts found for this filter.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="px-4 pb-8 sm:px-6">
+        {ordersQuery.isError && (
+          <ErrorBanner error={ordersQuery.error} onRetry={ordersQuery.refetch} />
+        )}
+        <Card>
+          {ordersQuery.isLoading ? <LoadingState label="Loading receipts..." /> : receipts.length === 0 ? <EmptyState title="No receipts found" /> : (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent"><TableHead>Receipt ID</TableHead><TableHead>Customer</TableHead><TableHead>Date</TableHead><TableHead>Payment</TableHead><TableHead className="text-right">Total</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
+              </TableHeader>
+              <TableBody>
+                {receipts.map((receipt) => (
+                  <TableRow key={receipt.id}>
+                    <TableCell className="font-medium text-slate-950">{receipt.invoice_id}</TableCell>
+                    <TableCell>{receipt.customer_name || "Walk-in customer"}</TableCell>
+                    <TableCell>{new Date(receipt.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>{receipt.payment_method}</TableCell>
+                    <TableCell className="text-right font-medium">₦{Number(receipt.total).toLocaleString()}</TableCell>
+                    <TableCell><div className="flex justify-end gap-2"><Button onClick={() => setSelectedId(receipt.id)} size="icon" variant="ghost"><Eye className="h-4 w-4" /></Button><Button size="icon" variant="ghost"><Printer className="h-4 w-4" /></Button></div></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </Card>
       </div>
 
-      {/* Receipt Detail Drawer */}
-      {selectedReceipt && (
-        <div className="fixed inset-0 bg-black/40 flex justify-end z-50">
-          <div className="bg-white w-full sm:w-[400px] p-6 border-l border-gray-200 animate-slideIn">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-indigo-600" /> {selectedReceipt.id}
-              </h2>
-              <button
-                onClick={() => setSelectedReceipt(null)}
-                className="text-gray-500 hover:text-red-500"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-sm text-gray-600 mb-1">
-              <strong>Customer:</strong> {selectedReceipt.customer}
-            </p>
-            <p className="text-sm text-gray-600 mb-1">
-              <strong>Date:</strong> {selectedReceipt.date}
-            </p>
-            <p className="text-sm text-gray-600 mb-3">
-              <strong>Payment:</strong> {selectedReceipt.payment}
-            </p>
-
-            <div className="border-t border-gray-200 mt-2 mb-3"></div>
-            <h3 className="text-sm font-semibold mb-2">Items:</h3>
-            <ul className="text-sm text-gray-700">
-              {selectedReceipt.items.map((item, index) => (
-                <li
-                  key={index}
-                  className="flex justify-between border-b border-gray-100 py-1"
-                >
-                  <span>{item.name} x{item.qty}</span>
-                  <span>₦{item.price.toLocaleString()}</span>
-                </li>
+      <Dialog open={Boolean(selectedId)} onOpenChange={() => setSelectedId(null)}>
+        <DialogContent onClose={() => setSelectedId(null)}>
+          <DialogHeader>
+            <DialogTitle>{receiptQuery.data?.invoice_id || "Receipt"}</DialogTitle>
+            <DialogDescription>{receiptQuery.data?.customer_name || "Walk-in customer"}</DialogDescription>
+          </DialogHeader>
+          {receiptQuery.isLoading ? <LoadingState /> : receiptQuery.isError ? <ErrorState error={receiptQuery.error} /> : receiptQuery.data && (
+            <div className="space-y-3 text-sm">
+              {(receiptQuery.data.items || []).map((item) => (
+                <div className="flex justify-between border-b border-slate-100 pb-2" key={item.id}>
+                  <span>{item.product_name} x{item.quantity}</span>
+                  <span>₦{Number(item.price).toLocaleString()}</span>
+                </div>
               ))}
-            </ul>
-
-            <div className="border-t border-gray-200 mt-3 pt-2 text-right font-semibold">
-              Total: ₦{selectedReceipt.total.toLocaleString()}
+              <div className="flex justify-between pt-2 font-semibold"><span>Total</span><span>₦{Number(receiptQuery.data.total).toLocaleString()}</span></div>
             </div>
-
-            <button
-              className="mt-4 w-full bg-green-600 text-white rounded-xl py-2 flex items-center justify-center gap-2 hover:bg-green-700 transition"
-            >
-              <Printer className="w-4 h-4" /> Print Receipt
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+          )}
+          <DialogFooter><Button variant="outline"><Printer className="h-4 w-4" />Print</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Page>
   );
-};
-
-export default ReceiptsHistoryPage;
+}

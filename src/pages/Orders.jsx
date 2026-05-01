@@ -1,19 +1,29 @@
 import { Search, Filter, Receipt, Eye, CheckCircle, XCircle, Clock } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ordersApi } from "../api/orders";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Page, PageHeader, PageTitle } from "../components/ui/page";
+import { EmptyState, ErrorBanner, LoadingState } from "../components/ui/state";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 
 export default function OrdersPage() {
-  const orders = [
-    { id: "#INV-2345", customer: "John Doe", total: "₦18,500", status: "Paid", date: "Oct 22, 2025" },
-    { id: "#INV-2346", customer: "Sarah Adams", total: "₦7,200", status: "Pending", date: "Oct 21, 2025" },
-    { id: "#INV-2347", customer: "Tunde Alabi", total: "₦15,900", status: "Cancelled", date: "Oct 20, 2025" },
-    { id: "#INV-2348", customer: "Mary Okoro", total: "₦25,000", status: "Paid", date: "Oct 19, 2025" },
-  ];
+  const [search, setSearch] = useState("");
+  const ordersQuery = useQuery({ queryKey: ["orders"], queryFn: ordersApi.list });
+  const orders = useMemo(() => (ordersQuery.data || []).filter((order) => {
+    const haystack = `${order.invoice_id || ""} ${order.customer_name || ""} ${order.status || ""}`.toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  }), [ordersQuery.data, search]);
 
-  const getStatusColor = (status) => {
+  const getStatusVariant = (status) => {
     switch (status) {
-      case "Paid": return "text-green-600";
-      case "Pending": return "text-yellow-600";
-      case "Cancelled": return "text-red-600";
-      default: return "text-gray-500";
+      case "Paid": return "success";
+      case "Pending": return "warning";
+      case "Cancelled": return "destructive";
+      default: return "secondary";
     }
   };
 
@@ -27,65 +37,80 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-        <h1 className="text-lg font-semibold flex items-center gap-2">
-          <Receipt className="w-6 h-6 text-blue-600" />
-          Orders / Transactions
-        </h1>
-        <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+    <Page>
+      <PageHeader>
+        <PageTitle
+          description="Search, filter, and review recent transactions."
+          icon={Receipt}
+          title="Orders"
+        />
+        <Button variant="outline">
           <Filter className="w-4 h-4" />
           Filter
-        </button>
-      </header>
+        </Button>
+      </PageHeader>
 
-      {/* Search Bar */}
-      <div className="flex items-center gap-2 px-6 py-4 border-b border-gray-200 bg-white">
+      <div className="px-4 sm:px-6">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-          <input
+          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+          <Input
             type="text"
             placeholder="Search by invoice ID, customer, or date..."
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+            className="pl-9"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
           />
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="p-6">
-        <table className="w-full border-collapse bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <thead>
-            <tr className="text-left text-sm text-gray-600 border-b border-gray-200 bg-gray-100">
-              <th className="p-3">Invoice ID</th>
-              <th className="p-3">Customer</th>
-              <th className="p-3">Total</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Date</th>
-              <th className="p-3 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((order, i) => (
-              <tr key={i} className="text-sm border-b border-gray-200 hover:bg-gray-50 transition">
-                <td className="p-3 font-medium text-gray-800">{order.id}</td>
-                <td className="p-3">{order.customer}</td>
-                <td className="p-3 font-semibold">{order.total}</td>
-                <td className={`p-3 flex items-center gap-2 ${getStatusColor(order.status)}`}>
-                  {getStatusIcon(order.status)}
-                  {order.status}
-                </td>
-                <td className="p-3 text-gray-600">{order.date}</td>
-                <td className="p-3 text-right">
-                  <button className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium">
+      <div className="px-4 pb-8 sm:px-6">
+        {ordersQuery.isError && (
+          <ErrorBanner error={ordersQuery.error} onRetry={ordersQuery.refetch} />
+        )}
+        <Card>
+          {ordersQuery.isLoading ? (
+            <LoadingState label="Loading orders..." />
+          ) : orders.length === 0 ? (
+            <EmptyState title="No orders found" />
+          ) : (
+          <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Invoice ID</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {orders.map((order) => (
+              <TableRow key={order.id}>
+                <TableCell className="font-medium text-slate-950">{order.invoice_id}</TableCell>
+                <TableCell>{order.customer_name || "Walk-in customer"}</TableCell>
+                <TableCell className="font-semibold">₦{Number(order.total).toLocaleString()}</TableCell>
+                <TableCell>
+                  <Badge variant={getStatusVariant(order.status)}>
+                    {getStatusIcon(order.status)}
+                    {order.status}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-slate-600">{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  <div className="flex justify-end">
+                    <Button size="sm" variant="ghost">
                     <Eye className="w-4 h-4" /> View
-                  </button>
-                </td>
-              </tr>
+                  </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
+          )}
+        </Card>
       </div>
-    </div>
+    </Page>
   );
 }

@@ -1,146 +1,59 @@
-import React, { useState } from "react";
-import { Users, UserPlus, Edit3, Trash2, ShieldCheck } from "lucide-react";
+import { ShieldCheck, Users } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { staffApi } from "../api/staff";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Page, PageHeader, PageTitle } from "../components/ui/page";
+import { EmptyState, ErrorBanner, LoadingState } from "../components/ui/state";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { useToast } from "../components/ui/toast";
 
-const StaffManagementPage = () => {
-  const [staffList, setStaffList] = useState([
-    { id: 1, name: "Aisha Bello", email: "aisha@cafeklang.com", role: "Cashier", status: "Active" },
-    { id: 2, name: "John Doe", email: "john@cafeklang.com", role: "Manager", status: "Active" },
-    { id: 3, name: "Jane Smith", email: "jane@cafeklang.com", role: "Admin", status: "Suspended" },
-  ]);
-
-  const [newStaff, setNewStaff] = useState({ name: "", email: "", role: "Cashier" });
-
-  const handleAddStaff = (e) => {
-    e.preventDefault();
-    if (!newStaff.name.trim() || !newStaff.email.trim()) return;
-    setStaffList([
-      ...staffList,
-      { id: staffList.length + 1, ...newStaff, status: "Active" },
-    ]);
-    setNewStaff({ name: "", email: "", role: "Cashier" });
-  };
-
-  const toggleStatus = (id) => {
-    setStaffList(
-      staffList.map((s) =>
-        s.id === id
-          ? { ...s, status: s.status === "Active" ? "Suspended" : "Active" }
-          : s
-      )
-    );
-  };
-
-  const handleDelete = (id) => {
-    setStaffList(staffList.filter((s) => s.id !== id));
-  };
+export default function StaffManagementPage() {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const staffQuery = useQuery({ queryKey: ["staff"], queryFn: staffApi.list });
+  const statusMutation = useMutation({
+    mutationFn: (member) => staffApi.update(member.id, {
+      name: member.name,
+      email: member.email,
+      role: member.role,
+      salary: member.salary,
+      status: member.status === "Active" ? "Suspended" : "Active",
+    }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["staff"] });
+      toast.success("Staff status updated");
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 p-6">
-      <h1 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-        <Users className="w-6 h-6 text-indigo-600" /> Staff / User Management
-      </h1>
-
-      {/* Add Staff Form */}
-      <form
-        onSubmit={handleAddStaff}
-        className="bg-white border border-gray-200 rounded-2xl p-4 mb-6 flex flex-col md:flex-row gap-4"
-      >
-        <input
-          type="text"
-          placeholder="Full Name"
-          className="border border-gray-300 rounded-xl px-3 py-2 flex-1 outline-none"
-          value={newStaff.name}
-          onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
-        />
-        <input
-          type="email"
-          placeholder="Email Address"
-          className="border border-gray-300 rounded-xl px-3 py-2 flex-1 outline-none"
-          value={newStaff.email}
-          onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
-        />
-        <select
-          className="border border-gray-300 rounded-xl px-3 py-2 outline-none"
-          value={newStaff.role}
-          onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
-        >
-          <option value="Cashier">Cashier</option>
-          <option value="Manager">Manager</option>
-          <option value="Admin">Admin</option>
-        </select>
-        <button
-          type="submit"
-          className="bg-indigo-600 text-white px-5 py-2 rounded-xl flex items-center gap-2 hover:bg-indigo-700 transition"
-        >
-          <UserPlus className="w-4 h-4" /> Add Staff
-        </button>
-      </form>
-
-      {/* Staff Table */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-        <table className="w-full border-collapse text-sm">
-          <thead className="bg-gray-100 text-gray-600">
-            <tr>
-              <th className="text-left p-3">Name</th>
-              <th className="text-left p-3">Email</th>
-              <th className="text-left p-3">Role</th>
-              <th className="text-left p-3">Status</th>
-              <th className="text-right p-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {staffList.map((staff) => (
-              <tr key={staff.id} className="border-t border-gray-100 hover:bg-gray-50">
-                <td className="p-3">{staff.name}</td>
-                <td className="p-3">{staff.email}</td>
-                <td className="p-3">{staff.role}</td>
-                <td className="p-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      staff.status === "Active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-600"
-                    }`}
-                  >
-                    {staff.status}
-                  </span>
-                </td>
-                <td className="p-3 text-right flex justify-end gap-3">
-                  <button
-                    onClick={() => toggleStatus(staff.id)}
-                    className="text-blue-600 hover:text-blue-700"
-                    title="Toggle status"
-                  >
-                    <ShieldCheck className="w-4 h-4" />
-                  </button>
-                  <button
-                    className="text-indigo-600 hover:text-indigo-700"
-                    title="Edit staff"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(staff.id)}
-                    className="text-red-600 hover:text-red-700"
-                    title="Delete staff"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {staffList.length === 0 && (
-              <tr>
-                <td colSpan="5" className="p-6 text-center text-gray-500">
-                  No staff found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+    <Page>
+      <PageHeader>
+        <PageTitle description="Manage staff users and access status." icon={Users} title="User Management" />
+      </PageHeader>
+      <div className="px-4 pb-8 sm:px-6">
+        {staffQuery.isError && (
+          <ErrorBanner error={staffQuery.error} onRetry={staffQuery.refetch} />
+        )}
+        <Card>
+          {staffQuery.isLoading ? <LoadingState /> : (staffQuery.data || []).length === 0 ? <EmptyState title="No users found" /> : (
+            <Table>
+              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+              <TableBody>{(staffQuery.data || []).map((staff) => (
+                <TableRow key={staff.id}>
+                  <TableCell className="font-medium text-slate-950">{staff.name}</TableCell>
+                  <TableCell>{staff.email}</TableCell>
+                  <TableCell>{staff.role}</TableCell>
+                  <TableCell><Badge variant={staff.status === "Active" ? "success" : "warning"}>{staff.status || "Active"}</Badge></TableCell>
+                  <TableCell><div className="flex justify-end"><Button onClick={() => statusMutation.mutate(staff)} size="sm" variant="ghost"><ShieldCheck className="h-4 w-4" />Toggle</Button></div></TableCell>
+                </TableRow>
+              ))}</TableBody>
+            </Table>
+          )}
+        </Card>
       </div>
-    </div>
+    </Page>
   );
-};
-
-export default StaffManagementPage;
+}

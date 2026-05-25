@@ -6,7 +6,6 @@ export class ErrorBoundary extends Component {
     super(props);
     this.state = { error: null };
   }
-
   static getDerivedStateFromError(error) {
     return { error };
   }
@@ -19,7 +18,6 @@ export class ErrorBoundary extends Component {
         </div>
       );
     }
-
     return this.props.children;
   }
 }

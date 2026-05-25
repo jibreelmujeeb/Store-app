@@ -28,7 +28,6 @@ const ForgotPasswordPage = () => {
           >
             Send Reset Link
           </button>
-
           <p className="text-sm text-center mt-4">
             Back to{" "}
             <a href="/login" className="text-orange-600">
